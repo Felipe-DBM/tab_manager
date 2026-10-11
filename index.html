@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Command Center</title>
+<style>
+:root{--bg:#0f1220;--tile:#2a3145;--tile2:#333b52;--line:#3a4360;--text:#f2f4fa;--mute:#8c95b0;--acc:#3b9bff;--r:16px}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0}
+body{background:var(--bg);color:var(--text);font:500 14px/1.4 "Outfit","Segoe UI",system-ui,sans-serif}
+button,input,textarea{font:inherit;color:inherit}
+button{cursor:pointer;background:none;border:0}
+:focus-visible{outline:2px solid var(--acc);outline-offset:2px}
+
+header{display:flex;align-items:center;gap:16px;padding:20px 28px}
+.logo{width:36px;height:36px;border-radius:10px;background:var(--acc);display:grid;place-items:center;font-weight:700}
+.search{flex:1;display:flex;justify-content:center}
+.search input{width:min(420px,100%);background:transparent;border:0;border-bottom:1px solid transparent;text-align:center;padding:8px;font-size:15px}
+.search input::placeholder{color:var(--mute)}
+.search input:focus{outline:0;border-color:var(--line)}
+.tools{display:flex;gap:4px}
+.tools button{padding:8px;border-radius:8px;color:var(--mute)}
+.tools button:hover{color:var(--text);background:var(--tile)}
+
+main{display:grid;grid-template-columns:1fr 300px;gap:32px;padding:8px 28px 40px;max-width:1500px;margin:0 auto}
+@media(max-width:900px){main{grid-template-columns:1fr}}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:20px;align-content:start}
+.tile{position:relative;height:170px;background:var(--tile);border-radius:var(--r);box-shadow:0 6px 16px rgba(0,0,0,.28);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:14px;text-align:center;color:inherit;text-decoration:none;transition:background .15s}
+.tile:hover{background:var(--tile2)}
+.tile.dragover{outline:2px dashed var(--acc)}
+.tile .name{font-weight:600;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ico{width:48px;height:48px;border-radius:50%;background:#f4c542;color:#222;display:grid;place-items:center;font-weight:700;font-size:18px;overflow:hidden;box-shadow:0 0 0 4px rgba(255,255,255,.08)}
+.ico img{width:100%;height:100%;object-fit:cover;background:#fff}
+.add{border:0;font-weight:600}
+.add .plus{font-size:26px;line-height:1}
+.more{position:absolute;top:8px;right:10px;color:var(--mute);padding:2px 8px;border-radius:6px;opacity:0;font-size:18px;letter-spacing:1px}
+.tile:hover .more,.more:focus-visible{opacity:1}
+.more:hover{color:var(--text);background:rgba(255,255,255,.08)}
+.minis{display:grid;grid-template-columns:repeat(3,36px);gap:8px;justify-content:center}
+.mini{width:36px;height:36px;border-radius:10px;background:#e9ecf5;color:#222;display:grid;place-items:center;font-size:13px;font-weight:700;overflow:hidden}
+.mini img{width:22px;height:22px;object-fit:contain}
+.empty{color:var(--mute);grid-column:1/-1;padding:20px 0}
+
+aside{border-top:2px solid var(--acc);padding-top:14px;align-self:start}
+aside h2{display:flex;justify-content:space-between;align-items:center;margin:0 0 14px;font-size:16px}
+aside h2 button{color:var(--acc);font-size:22px;line-height:1;padding:0 6px}
+.note{background:var(--tile);border-radius:12px;padding:10px;margin-bottom:12px;position:relative}
+.note textarea{width:100%;min-height:84px;background:transparent;border:0;resize:vertical;padding:0 18px 0 0}
+.note textarea:focus{outline:0}
+.note .x{position:absolute;top:6px;right:8px;color:var(--mute)}
+.hint{color:var(--mute);font-size:13px}
+
+dialog{background:var(--tile);color:var(--text);border:1px solid var(--line);border-radius:var(--r);padding:22px;width:min(440px,92vw)}
+dialog::backdrop{background:rgba(5,7,14,.65)}
+dialog h3{margin:0 0 16px;font-size:17px}
+label{display:block;margin:12px 0 4px;color:var(--mute);font-size:13px}
+input[type=text],input[type=url],dialog textarea{width:100%;background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:10px 12px}
+dialog textarea{min-height:130px;resize:vertical}
+.seg{display:flex;gap:6px}
+.seg button{flex:1;padding:8px;border-radius:10px;border:1px solid var(--line);color:var(--mute)}
+.seg button[aria-pressed=true]{background:var(--acc);border-color:var(--acc);color:#fff}
+.row{display:flex;gap:8px;justify-content:flex-end;margin-top:20px}
+.row .left{margin-right:auto}
+.btn{padding:9px 16px;border-radius:10px;background:var(--bg);border:1px solid var(--line)}
+.btn.primary{background:var(--acc);border-color:var(--acc);color:#fff}
+.btn.danger{color:#ff7b7b}
+.links a{display:flex;align-items:center;gap:12px;padding:8px;border-radius:10px;color:inherit;text-decoration:none}
+.links a:hover{background:var(--tile2)}
+.links .ico{width:30px;height:30px;font-size:13px;box-shadow:none}
+</style>
+</head>
+<body>
+<header>
+  <div class="logo" title="Command Center">C</div>
+  <div class="search"><input id="q" type="search" placeholder="Search my command center" autocomplete="off" aria-label="Search"></div>
+  <div class="tools">
+    <button id="bm" title="Import browser bookmarks (.html)" aria-label="Import bookmarks">★</button>
+    <input id="bmfile" type="file" accept=".html,.htm" hidden>
+    <button id="exp" title="Export backup" aria-label="Export backup">⇩</button>
+    <button id="imp" title="Import backup" aria-label="Import backup">⇧</button>
+    <input id="file" type="file" accept="application/json" hidden>
+  </div>
+</header>
+
+<main>
+  <section><div class="grid" id="grid"></div></section>
+  <aside>
+    <h2>Notes &amp; Lists <button id="addNote" aria-label="Add note">+</button></h2>
+    <div id="notes"></div>
+  </aside>
+</main>
+
+<dialog id="editor">
+  <form method="dialog" id="form">
+    <h3 id="etitle">New tile</h3>
+    <div class="seg" id="seg">
+      <button type="button" data-t="link" aria-pressed="true">Link</button>
+      <button type="button" data-t="group" aria-pressed="false">Group</button>
+    </div>
+    <label for="fname">Name</label>
+    <input id="fname" type="text" required>
+    <div id="fLink"><label for="furl">URL</label><input id="furl" type="text" placeholder="example.com"></div>
+    <div id="fGroup" hidden><label for="flinks">Links, one per line: name, url</label>
+      <textarea id="flinks" placeholder="Notion, notion.so&#10;Gmail, mail.google.com"></textarea></div>
+    <div class="row">
+      <button type="button" class="btn danger left" id="del" hidden>Delete</button>
+      <button type="button" class="btn" id="cancel">Cancel</button>
+      <button class="btn primary" value="save">Save</button>
+    </div>
+  </form>
+</dialog>
+
+<dialog id="viewer">
+  <h3 id="vtitle"></h3>
+  <div class="links" id="vlinks"></div>
+  <div class="row"><button class="btn" id="vclose">Close</button><button class="btn primary" id="vall">Open all</button></div>
+</dialog>
+
+<script>
+const KEY = "command-center-v1";
+const $ = s => document.querySelector(s);
+const uid = () => Math.random().toString(36).slice(2, 9);
+const seed = {
+  items: [
+    {id: uid(), type: "link", name: "Gmail", url: "https://mail.google.com"},
+    {id: uid(), type: "link", name: "GitHub", url: "https://github.com"},
+    {id: uid(), type: "group", name: "Studies", children: [
+      {id: uid(), name: "Google Classroom", url: "https://classroom.google.com"},
+      {id: uid(), name: "Notion", url: "https://notion.so"}]}
+  ],
+  notes: []
+};
+let db;
+try { db = JSON.parse(localStorage.getItem(KEY)) || seed; } catch { db = seed; }
+const save = () => { try { localStorage.setItem(KEY, JSON.stringify(db)); } catch { alert("Storage is full. Export a backup and remove some tiles."); } };
+
+const fix = u => /^https?:\/\//i.test(u) ? u : "https://" + u.trim();
+const host = u => { try { return new URL(fix(u)).hostname; } catch { return ""; } };
+const fav = u => "https://www.google.com/s2/favicons?domain=" + host(u) + "&sz=64";
+const esc = s => s.replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+
+const ddg = u => "https://icons.duckduckgo.com/ip3/" + host(u) + ".ico";
+function iconImg(url, ic) {
+  if (!url && !ic) return "";
+  return `<img src="${esc(ic || fav(url))}" data-u="${esc(url || "")}" data-c="${ic ? 1 : 0}" data-s="0" alt="" loading="lazy">`;
+}
+function icon(name, url, ic) {
+  const l = esc((name || "?")[0].toUpperCase());
+  return `<div class="ico" data-l="${l}">${iconImg(url, ic) || l}</div>`;
+}
+/* fallback chain: saved icon -> Google -> DuckDuckGo -> first letter */
+document.addEventListener("error", e => {
+  const i = e.target;
+  if (i.tagName !== "IMG" || !i.dataset.u && i.dataset.c !== "1") return;
+  const n = +i.dataset.s + 1, idx = n - +i.dataset.c, src = [fav(i.dataset.u), ddg(i.dataset.u)];
+  i.dataset.s = n;
+  if (idx >= 0 && idx < src.length && i.dataset.u) i.src = src[idx];
+  else i.parentElement.textContent = i.parentElement.dataset.l || "?";
+}, true);
+
+/* ---------- Grid ---------- */
+let dragId = null;
+function render() {
+  const q = $("#q").value.trim().toLowerCase();
+  const grid = $("#grid");
+  grid.innerHTML = "";
+  if (!q) {
+    const a = document.createElement("button");
+    a.className = "tile add";
+    a.innerHTML = '<span class="plus">+</span><span>Add new tile</span>';
+    a.onclick = () => openEditor();
+    grid.append(a);
+  }
+  const match = (n, u) => !q || n.toLowerCase().includes(q) || (u || "").toLowerCase().includes(q);
+  let count = 0;
+  db.items.forEach(it => {
+    const hit = it.type === "link" ? match(it.name, it.url)
+      : match(it.name) || it.children.some(c => match(c.name, c.url));
+    if (!hit) return;
+    count++;
+    const el = document.createElement(it.type === "link" ? "a" : "div");
+    el.className = "tile";
+    el.draggable = !q;
+    el.dataset.id = it.id;
+    if (it.type === "link") {
+      el.href = fix(it.url);
+      el.innerHTML = icon(it.name, it.url, it.icon) + `<span class="name">${esc(it.name)}</span>`;
+    } else {
+      el.tabIndex = 0;
+      el.setAttribute("role", "button");
+      el.innerHTML = '<div class="minis">' + it.children.slice(0, 6).map(c =>
+        `<div class="mini" data-l="${esc(c.name[0].toUpperCase())}">${iconImg(c.url, c.icon) || esc(c.name[0].toUpperCase())}</div>`).join("") +
+        `</div><span class="name">${esc(it.name)}</span>`;
+      el.onclick = () => openGroup(it);
+      el.onkeydown = e => { if (e.key === "Enter") openGroup(it); };
+    }
+    const m = document.createElement("button");
+    m.className = "more"; m.textContent = "···"; m.title = "Edit"; m.setAttribute("aria-label", "Edit " + it.name);
+    m.onclick = e => { e.preventDefault(); e.stopPropagation(); openEditor(it); };
+    el.append(m);
+    el.ondragstart = () => dragId = it.id;
+    el.ondragover = e => { e.preventDefault(); el.classList.add("dragover"); };
+    el.ondragleave = () => el.classList.remove("dragover");
+    el.ondrop = e => {
+      e.preventDefault();
+      const from = db.items.findIndex(x => x.id === dragId), to = db.items.findIndex(x => x.id === it.id);
+      if (from < 0 || from === to) return render();
+      db.items.splice(to, 0, db.items.splice(from, 1)[0]);
+      save(); render();
+    };
+    grid.append(el);
+  });
+  if (q && !count) grid.innerHTML = `<p class="empty">No match. Press Enter to search Google for “${esc(q)}”.</p>`;
+}
+
+$("#q").addEventListener("input", render);
+$("#q").addEventListener("keydown", e => {
+  if (e.key !== "Enter") return;
+  const first = $("#grid .tile:not(.add)");
+  if (first && first.href) location.href = first.href;
+  else if (first) first.click();
+  else if (e.target.value.trim()) location.href = "https://www.google.com/search?q=" + encodeURIComponent(e.target.value);
+});
+addEventListener("keydown", e => {
+  if (e.key === "/" && !/INPUT|TEXTAREA/.test(document.activeElement.tagName) && !document.querySelector("dialog[open]")) {
+    e.preventDefault(); $("#q").focus();
+  }
+});
+
+/* ---------- Group viewer ---------- */
+let viewing = null;
+function openGroup(g) {
+  viewing = g;
+  $("#vtitle").textContent = g.name;
+  $("#vlinks").innerHTML = g.children.map(c =>
+    `<a href="${esc(fix(c.url))}" target="_blank" rel="noopener">${icon(c.name, c.url, c.icon)}<span>${esc(c.name)}</span></a>`).join("")
+    || '<p class="hint">This group is empty. Edit it to add links.</p>';
+  $("#viewer").showModal();
+}
+$("#vclose").onclick = () => $("#viewer").close();
+$("#vall").onclick = () => { viewing.children.forEach(c => window.open(fix(c.url), "_blank", "noopener")); };
+
+/* ---------- Editor ---------- */
+let editing = null, type = "link";
+function setType(t) {
+  type = t;
+  document.querySelectorAll("#seg button").forEach(b => b.setAttribute("aria-pressed", b.dataset.t === t));
+  $("#fLink").hidden = t !== "link"; $("#fGroup").hidden = t !== "group";
+}
+document.querySelectorAll("#seg button").forEach(b => b.onclick = () => setType(b.dataset.t));
+function openEditor(it = null) {
+  editing = it;
+  $("#etitle").textContent = it ? "Edit tile" : "New tile";
+  $("#fname").value = it ? it.name : "";
+  $("#furl").value = it && it.type === "link" ? it.url : "";
+  $("#flinks").value = it && it.type === "group" ? it.children.map(c => c.name + ", " + c.url).join("\n") : "";
+  $("#del").hidden = !it;
+  setType(it ? it.type : "link");
+  $("#editor").showModal();
+  $("#fname").focus();
+}
+$("#cancel").onclick = () => $("#editor").close();
+$("#del").onclick = () => {
+  db.items = db.items.filter(x => x.id !== editing.id);
+  save(); render(); $("#editor").close();
+};
+$("#form").addEventListener("submit", () => {
+  const name = $("#fname").value.trim();
+  if (!name) return;
+  const item = {id: editing ? editing.id : uid(), type, name};
+  if (type === "link") {
+    if (!$("#furl").value.trim()) return;
+    item.url = fix($("#furl").value);
+    if (editing && editing.type === "link" && editing.url === item.url && editing.icon) item.icon = editing.icon;
+  } else {
+    const prev = editing && editing.type === "group" ? editing.children : [];
+    item.children = $("#flinks").value.split("\n").map(l => l.trim()).filter(Boolean).map(l => {
+      const i = l.lastIndexOf(",");
+      const n = i > 0 ? l.slice(0, i).trim() : host(l) || l;
+      const u = fix(i > 0 ? l.slice(i + 1) : l);
+      return {id: uid(), name: n, url: u, icon: (prev.find(p => p.url === u) || {}).icon};
+    });
+  }
+  if (editing) db.items[db.items.findIndex(x => x.id === editing.id)] = item; else db.items.push(item);
+  save(); render();
+});
+
+/* ---------- Notes ---------- */
+function renderNotes() {
+  const box = $("#notes");
+  box.innerHTML = db.notes.length ? "" : '<p class="hint">Notes, reminders or lists. Press + to add one.</p>';
+  db.notes.forEach(n => {
+    const d = document.createElement("div");
+    d.className = "note";
+    d.innerHTML = `<textarea aria-label="Note">${esc(n.text)}</textarea><button class="x" aria-label="Delete note">×</button>`;
+    d.querySelector("textarea").oninput = e => { n.text = e.target.value; save(); };
+    d.querySelector(".x").onclick = () => { db.notes = db.notes.filter(x => x !== n); save(); renderNotes(); };
+    box.append(d);
+  });
+}
+$("#addNote").onclick = () => { db.notes.unshift({id: uid(), text: ""}); save(); renderNotes(); $("#notes textarea").focus(); };
+
+/* ---------- Bookmarks import (Netscape HTML export) ---------- */
+function parseBookmarks(html) {
+  const doc = new DOMParser().parseFromString(html, "text/html");
+  const mk = a => {
+    const url = a.getAttribute("href") || "";
+    if (!/^https?:/i.test(url)) return null;
+    return {id: uid(), name: a.textContent.trim() || host(url), url, icon: a.getAttribute("icon") || undefined};
+  };
+  const out = [];
+  const walk = (dl, top) => {
+    for (const dt of dl.children) {
+      if (dt.tagName !== "DT") continue;
+      const a = dt.querySelector(":scope > a"), h = dt.querySelector(":scope > h3"), sub = dt.querySelector(":scope > dl");
+      if (a) { const l = mk(a); if (l) out.push({...l, type: "link"}); }
+      else if (h && sub) {
+        if (top) walk(sub, false);
+        else {
+          const children = [...sub.querySelectorAll("a")].map(mk).filter(Boolean);
+          if (children.length) out.push({id: uid(), type: "group", name: h.textContent.trim(), children});
+        }
+      }
+    }
+  };
+  const root = doc.querySelector("dl");
+  if (root) walk(root, true);
+  return out;
+}
+$("#bm").onclick = () => $("#bmfile").click();
+$("#bmfile").onchange = async e => {
+  const f = e.target.files[0]; if (!f) return;
+  const found = parseBookmarks(await f.text());
+  const have = new Set(db.items.flatMap(i => i.type === "link" ? [i.url] : []));
+  const fresh = found.filter(i => i.type === "group" || !have.has(i.url));
+  if (!fresh.length) { alert("No bookmarks found in that file."); e.target.value = ""; return; }
+  db.items.push(...fresh); save(); render();
+  alert(fresh.length + " tiles imported (folders became groups).");
+  e.target.value = "";
+};
+
+/* ---------- Backup ---------- */
+$("#exp").onclick = () => {
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(new Blob([JSON.stringify(db, null, 2)], {type: "application/json"}));
+  a.download = "command-center-backup.json"; a.click();
+};
+$("#imp").onclick = () => $("#file").click();
+$("#file").onchange = async e => {
+  try {
+    const d = JSON.parse(await e.target.files[0].text());
+    if (!Array.isArray(d.items)) throw 0;
+    db = {items: d.items, notes: d.notes || []}; save(); render(); renderNotes();
+  } catch { alert("That file isn't a valid backup."); }
+  e.target.value = "";
+};
+
+render(); renderNotes();
+</script>
+</body>
+</html>
