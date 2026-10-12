@@ -36,16 +36,14 @@ main{display:grid;grid-template-columns:1fr 300px;gap:32px;padding:8px 28px 40px
 .tile:hover{background:var(--tile2)}
 .tile.dragover{outline:2px dashed var(--acc)}
 .tile .name{font-weight:600;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.ico{width:48px;height:48px;border-radius:50%;background:#f4c542;color:#222;display:grid;place-items:center;font-weight:700;font-size:18px;overflow:hidden;box-shadow:0 0 0 4px rgba(255,255,255,.08)}
-.ico img{width:100%;height:100%;padding:8px;object-fit:contain}
+.ico{width:48px;height:48px;border-radius:50%;background:#40d6c7;color:#102a2c;display:grid;place-items:center;font-weight:700;font-size:18px;overflow:hidden;box-shadow:0 0 0 4px rgba(255,255,255,.08)}
 .add{border:0;font-weight:600}
 .add .plus{font-size:26px;line-height:1}
 .more{position:absolute;top:8px;right:10px;color:var(--mute);padding:2px 8px;border-radius:6px;opacity:0;font-size:18px;letter-spacing:1px}
 .tile:hover .more,.more:focus-visible{opacity:1}
 .more:hover{color:var(--text);background:rgba(255,255,255,.08)}
 .minis{display:grid;grid-template-columns:repeat(3,36px);gap:8px;justify-content:center}
-.mini{width:36px;height:36px;border-radius:10px;background:#e9ecf5;color:#222;display:grid;place-items:center;font-size:13px;font-weight:700;overflow:hidden}
-.mini img{width:22px;height:22px;object-fit:contain}
+.mini{width:36px;height:36px;border-radius:10px;background:#40d6c7;color:#102a2c;display:grid;place-items:center;font-size:13px;font-weight:700;overflow:hidden}
 .empty{color:var(--mute);grid-column:1/-1;padding:20px 0}
 
 aside{border-top:2px solid var(--acc);padding-top:14px;align-self:start}
@@ -143,27 +141,12 @@ const save = () => { try { localStorage.setItem(KEY, JSON.stringify(db)); } catc
 
 const fix = u => /^https?:\/\//i.test(u) ? u : "https://" + u.trim();
 const host = u => { try { return new URL(fix(u)).hostname; } catch { return ""; } };
-const fav = u => "https://www.google.com/s2/favicons?domain_url=" + encodeURIComponent(fix(u)) + "&sz=64";
 const esc = s => s.replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 
-const ddg = u => "https://icons.duckduckgo.com/ip3/" + host(u) + ".ico";
-function iconImg(url, ic) {
-  if (!url && !ic) return "";
-  return `<img src="${esc(ic || fav(url))}" data-u="${esc(url || "")}" data-c="${ic ? 1 : 0}" data-s="0" alt="" loading="lazy">`;
-}
-function icon(name, url, ic) {
+function icon(name) {
   const l = esc((name || "?")[0].toUpperCase());
-  return `<div class="ico" data-l="${l}">${iconImg(url, ic) || l}</div>`;
+  return `<div class="ico">${l}</div>`;
 }
-/* fallback chain: saved icon -> Google -> DuckDuckGo -> first letter */
-document.addEventListener("error", e => {
-  const i = e.target;
-  if (i.tagName !== "IMG" || !i.dataset.u && i.dataset.c !== "1") return;
-  const n = +i.dataset.s + 1, idx = n - +i.dataset.c, src = [fav(i.dataset.u), ddg(i.dataset.u)];
-  i.dataset.s = n;
-  if (idx >= 0 && idx < src.length && i.dataset.u) i.src = src[idx];
-  else i.parentElement.textContent = i.parentElement.dataset.l || "?";
-}, true);
 
 /* ---------- Grid ---------- */
 let dragId = null;
@@ -191,12 +174,12 @@ function render() {
     el.dataset.id = it.id;
     if (it.type === "link") {
       el.href = fix(it.url);
-      el.innerHTML = icon(it.name, it.url, it.icon) + `<span class="name">${esc(it.name)}</span>`;
+      el.innerHTML = icon(it.name) + `<span class="name">${esc(it.name)}</span>`;
     } else {
       el.tabIndex = 0;
       el.setAttribute("role", "button");
       el.innerHTML = '<div class="minis">' + it.children.slice(0, 6).map(c =>
-        `<div class="mini" data-l="${esc(c.name[0].toUpperCase())}">${iconImg(c.url, c.icon) || esc(c.name[0].toUpperCase())}</div>`).join("") +
+        `<div class="mini">${esc((c.name || "?")[0].toUpperCase())}</div>`).join("") +
         `</div><span class="name">${esc(it.name)}</span>`;
       el.onclick = () => openGroup(it);
       el.onkeydown = e => { if (e.key === "Enter") openGroup(it); };
@@ -240,7 +223,7 @@ function openGroup(g) {
   viewing = g;
   $("#vtitle").textContent = g.name;
   $("#vlinks").innerHTML = g.children.map(c =>
-    `<a href="${esc(fix(c.url))}" target="_blank" rel="noopener">${icon(c.name, c.url, c.icon)}<span>${esc(c.name)}</span></a>`).join("")
+    `<a href="${esc(fix(c.url))}" target="_blank" rel="noopener">${icon(c.name)}<span>${esc(c.name)}</span></a>`).join("")
     || '<p class="hint">This group is empty. Edit it to add links.</p>';
   $("#viewer").showModal();
 }
@@ -278,14 +261,12 @@ $("#form").addEventListener("submit", () => {
   if (type === "link") {
     if (!$("#furl").value.trim()) return;
     item.url = fix($("#furl").value);
-    if (editing && editing.type === "link" && editing.url === item.url && editing.icon) item.icon = editing.icon;
   } else {
-    const prev = editing && editing.type === "group" ? editing.children : [];
     item.children = $("#flinks").value.split("\n").map(l => l.trim()).filter(Boolean).map(l => {
       const i = l.lastIndexOf(",");
       const n = i > 0 ? l.slice(0, i).trim() : host(l) || l;
       const u = fix(i > 0 ? l.slice(i + 1) : l);
-      return {id: uid(), name: n, url: u, icon: (prev.find(p => p.url === u) || {}).icon};
+      return {id: uid(), name: n, url: u};
     });
   }
   if (editing) db.items[db.items.findIndex(x => x.id === editing.id)] = item; else db.items.push(item);
@@ -313,7 +294,7 @@ function parseBookmarks(html) {
   const mk = a => {
     const url = a.getAttribute("href") || "";
     if (!/^https?:/i.test(url)) return null;
-    return {id: uid(), name: a.textContent.trim() || host(url), url, icon: a.getAttribute("icon") || undefined};
+    return {id: uid(), name: a.textContent.trim() || host(url), url};
   };
   const out = [];
   const walk = (dl, top) => {
