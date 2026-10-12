@@ -36,14 +36,18 @@ main{display:grid;grid-template-columns:1fr 300px;gap:32px;padding:8px 28px 40px
 .tile:hover{background:var(--tile2)}
 .tile.dragover{outline:2px dashed var(--acc)}
 .tile .name{font-weight:600;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.ico{width:48px;height:48px;border-radius:50%;background:#238bb8;color:#fff;display:grid;place-items:center;font-weight:700;font-size:18px;overflow:hidden;box-shadow:0 0 0 4px rgba(255,255,255,.08)}
+.ico{width:48px;height:48px;border-radius:50%;background:#17506f;color:#fff;display:grid;place-items:center;font-weight:700;font-size:18px;overflow:hidden;box-shadow:0 0 0 4px rgba(255,255,255,.08)}
 .add{border:0;font-weight:600}
 .add .plus{font-size:26px;line-height:1}
-.more{position:absolute;top:8px;right:10px;color:var(--mute);padding:2px 8px;border-radius:6px;opacity:0;font-size:18px;letter-spacing:1px}
+.tile.group{overflow:hidden}
+.tile.group .minis{position:absolute;inset:0;align-content:center;opacity:.3;pointer-events:none}
+.tile.group::after{content:"";position:absolute;inset:0;background:rgba(15,18,32,.55);pointer-events:none}
+.tile.group .name{position:absolute;top:50%;left:14px;right:14px;z-index:1;transform:translateY(-50%)}
+.more{position:absolute;top:8px;right:10px;z-index:2;color:var(--mute);padding:2px 8px;border-radius:6px;opacity:0;font-size:18px;letter-spacing:1px}
 .tile:hover .more,.more:focus-visible{opacity:1}
 .more:hover{color:var(--text);background:rgba(255,255,255,.08)}
 .minis{display:grid;grid-template-columns:repeat(3,36px);gap:8px;justify-content:center}
-.mini{width:36px;height:36px;border-radius:10px;background:#238bb8;color:#fff;display:grid;place-items:center;font-size:13px;font-weight:700;overflow:hidden}
+.mini{width:36px;height:36px;border-radius:10px;background:#17506f;color:#fff;display:grid;place-items:center;font-size:13px;font-weight:700;overflow:hidden}
 .empty{color:var(--mute);grid-column:1/-1;padding:20px 0}
 
 aside{border-top:2px solid var(--acc);padding-top:14px;align-self:start}
@@ -176,6 +180,7 @@ function render() {
       el.href = fix(it.url);
       el.innerHTML = icon(it.name) + `<span class="name">${esc(it.name)}</span>`;
     } else {
+      el.classList.add("group");
       el.tabIndex = 0;
       el.setAttribute("role", "button");
       el.innerHTML = '<div class="minis">' + it.children.slice(0, 6).map(c =>
